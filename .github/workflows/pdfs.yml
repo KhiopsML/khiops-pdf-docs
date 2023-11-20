@@ -1,0 +1,59 @@
+---
+name: Create PDFs
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ['v*']
+jobs:
+  create-pdfs:
+    name: Create PDFs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Install LibreOffice & Fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice ttf-mscorefonts-installer
+          mkdir ~/.fonts
+          cp fonts/*.ttf ~/.fonts
+          fc-cache -f -v
+      - name: Transform KhiopsGuide
+        run: |
+          soffice --headless --convert-to pdf --outdir . KhiopsGuide.docx
+          soffice --headless --convert-to pdf --outdir . KhiopsCoclusteringGuide.docx
+          soffice --headless --convert-to pdf --outdir . KhiopsVisualizationGuide.docx
+          soffice --headless --convert-to pdf --outdir . KhiopsCovisualizationGuide.docx
+          # The tutorial must be done by hand as the rendering of LibreOffice is not ok
+      - name: Upload PDFs Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: KhiopsGuides-${{ github.ref_name }}
+          path: ./*.pdf
+          retention-days: 7
+  release-pdfs:
+    name: Release Guide PDFs
+    needs: create-pdfs
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download PDFs Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: KhiopsGuides-${{ github.ref_name }}
+          path: KhiopsGuides
+      - name: Rename the docs with the tag
+        run: |
+          mv KhiopsGuides/KhiopsGuide.pdf KhiopsGuides/KhiopsGuide-${{ github.ref_name }}.pdf
+          mv KhiopsGuides/KhiopsCoclusteringGuide.pdf KhiopsGuides/KhiopsCoclusteringGuide-${{ github.ref_name }}.pdf
+          mv KhiopsGuides/KhiopsVisualizationGuide.pdf KhiopsGuides/KhiopsVisualizationGuide-${{ github.ref_name }}.pdf
+          mv KhiopsGuides/KhiopsCovisualizationGuide.pdf KhiopsGuides/KhiopsCovisualizationGuide-${{ github.ref_name }}.pdf
+      - name: Release Guides
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: KhiopsGuides/*.pdf
