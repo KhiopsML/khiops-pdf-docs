@@ -7,6 +7,7 @@ are mainly focused on the desktop applications.
 - Commit and tag.
   - A release will be created.
 - Create PDFs renderings PPT tutorial and upload it to the created release.
+  - Beware of exporting documents in pdf format without Microsoft Purview protection
 - Create a release for the tag in the Github repository.
 
 ## Why not automate ?
